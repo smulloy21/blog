@@ -70,6 +70,27 @@ test('blog likes are initialized to 0 when missing', async () => {
   assert.strictEqual(response.body.likes, 0)
 })
 
+test('blog post request fails if title or url is missing', async () => {
+  const newBlog1 = {
+    author: 'Summer',
+    url: 'summers-blog.com',
+  }
+  const newBlog2 = {
+    title: 'A new blog post',
+    author: 'Summer',
+  }
+
+  await api
+    .post('/api/blogs')
+    .send(newBlog1)
+    .expect(400)
+
+  await api
+    .post('/api/blogs')
+    .send(newBlog2)
+    .expect(400)
+})
+
 after(async () => {
   await mongoose.connection.close()
 })
