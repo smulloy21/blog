@@ -33,7 +33,7 @@ test('blogs use id not _id as a unique identifier', async () => {
   assert.strictEqual(response.body[0]._id, undefined)
 })
 
-test('a valid blog can be added ', async () => {
+test('a valid blog can be added', async () => {
   const newBlog = {
     title: 'A new blog post',
     author: 'Summer',
@@ -52,6 +52,22 @@ test('a valid blog can be added ', async () => {
 
   const contents = blogsAtEnd.map(n => n.title)
   assert(contents.includes('A new blog post'))
+})
+
+test('blog likes are initialized to 0 when missing', async () => {
+  const newBlog = {
+    title: 'A new blog post',
+    author: 'Summer',
+    url: 'summers-blog.com',
+  }
+
+  const response = await api
+    .post('/api/blogs')
+    .send(newBlog)
+    .expect(201)
+    .expect('Content-Type', /application\/json/)
+
+  assert.strictEqual(response.body.likes, 0)
 })
 
 after(async () => {
