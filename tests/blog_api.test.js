@@ -105,6 +105,26 @@ test('a valid blog can be deleted', async () => {
   assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length - 1)
 })
 
+test('a valid blog can be updated', async () => {
+  const blogsAtStart = await helper.blogsInDb()
+  const blogToUpdate = blogsAtStart[0]
+
+  blogToUpdate.title = 'New Title'
+  blogToUpdate.likes += 1
+
+  await api
+    .put(`/api/blogs/${blogToUpdate.id}`)
+    .send(blogToUpdate)
+    .expect(200)
+
+  const resultBlog = await api
+    .get(`/api/blogs/${blogToUpdate.id}`)
+    .expect(200)
+    .expect('Content-Type', /application\/json/)
+
+  assert.deepStrictEqual(resultBlog.body, blogToUpdate)
+})
+
 after(async () => {
   await mongoose.connection.close()
 })
