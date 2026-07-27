@@ -124,18 +124,66 @@ test('blog post request fails with statuscode 401 if token is not provided', asy
   assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length)
 })
 
-test('a valid blog can be deleted', async () => {
-  const blogsAtStart = await helper.blogsInDb()
-  const blogToDelete = blogsAtStart[0]
+describe('deletion of a blog', () => {
+  let blogToDelete
 
-  await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204)
+  beforeEach(async () => {
+    const newBlog = {
+      title: 'blog to be deleted',
+      author: 'Summer',
+      url: 'delete-me.com',
+    }
 
-  const blogsAtEnd = await helper.blogsInDb()
+    const result = await api
+      .post('/api/blogs')
+      .set('Authorization', `Bearer ${token}`)
+      .send(newBlog)
 
-  const ids = blogsAtEnd.map(n => n.id)
-  assert(!ids.includes(blogToDelete.id))
+    blogToDelete = result.body
+  })
 
-  assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length - 1)
+  test('succeeds with status code 204 if requester is the creator', async () => {
+    const blogsAtStart = await helper.blogsInDb()
+
+    await api
+      .delete(`/api/blogs/${blogToDelete.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(204)
+
+    const blogsAtEnd = await helper.blogsInDb()
+    const ids = blogsAtEnd.map(b => b.id)
+    assert(!ids.includes(blogToDelete.id))
+    assert.strictEqual(blogsAtEnd.length, blogsAtStart.length - 1)
+  })
+
+  test('fails with status code 401 if token is not provided', async () => {
+    const blogsAtStart = await helper.blogsInDb()
+
+    await api.delete(`/api/blogs/${blogToDelete.id}`).expect(401)
+
+    const blogsAtEnd = await helper.blogsInDb()
+    assert.strictEqual(blogsAtEnd.length, blogsAtStart.length)
+  })
+
+  test('fails with status code 401 if requester is not the creator', async () => {
+    const otherPasswordHash = await bcrypt.hash('sekret', 10)
+    const otherUser = new User({ username: 'otherwriter', passwordHash: otherPasswordHash })
+    await otherUser.save()
+    const otherToken = jwt.sign(
+      { username: otherUser.username, id: otherUser._id },
+      process.env.SECRET
+    )
+
+    const blogsAtStart = await helper.blogsInDb()
+
+    await api
+      .delete(`/api/blogs/${blogToDelete.id}`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .expect(401)
+
+    const blogsAtEnd = await helper.blogsInDb()
+    assert.strictEqual(blogsAtEnd.length, blogsAtStart.length)
+  })
 })
 
 test('a valid blog can be updated', async () => {
